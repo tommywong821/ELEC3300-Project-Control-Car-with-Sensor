@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lcd.h"
+#include <string.h>
+#define BUFFER_LEN  64
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,10 +44,15 @@
  ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 
+UART_HandleTypeDef huart1;
+
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
+// joystick inout value: 1=x-axis, 2=y-axis
 char adc1_dec[8], adc2_dec[8];
+// bluetooth buffer
+uint8_t TX_BUFFER[BUFFER_LEN] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,13 +61,13 @@ static void MX_GPIO_Init(void);
 static void MX_FSMC_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -94,15 +101,13 @@ int main(void)
   MX_FSMC_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   LCD_INIT();
 
   // start ADC1, ADC2 for the joystick
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADCEx_Calibration_Start(&hadc2);
-
-  HAL_ADC_Start(&hadc1);
-  HAL_ADC_Start(&hadc2);
 
   LCD_DrawString(10, 40, "ADC X Value:");
 	LCD_DrawString(10, 60, "ADC2 Y Value:");
@@ -117,16 +122,38 @@ int main(void)
     /* USER CODE BEGIN 3 */
     HAL_ADC_Start(&hadc1);
 		HAL_ADC_PollForConversion(&hadc1,1000);
-		uint32_t adc1 = HAL_ADC_GetValue(&hadc1);
-		sprintf(adc1_dec, "%d", adc1);
+		uint16_t adc1 = HAL_ADC_GetValue(&hadc1);
+		sprintf(adc1_dec, "%4d", adc1);
     LCD_DrawString(120, 40, adc1_dec);
 
     HAL_ADC_Start(&hadc2);
 		HAL_ADC_PollForConversion(&hadc2,1000);
-		uint32_t adc2 = HAL_ADC_GetValue(&hadc2);
-		sprintf(adc2_dec, "%d", adc2);
+		uint16_t adc2 = HAL_ADC_GetValue(&hadc2);
+		sprintf(adc2_dec, "%4d", adc2);
     LCD_DrawString(120, 60, adc2_dec);
 
+if(adc1 > 3000){
+  TX_BUFFER[0] = '1';
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
+  LCD_DrawString(120, 100, "sending 1");
+}else if(adc1 < 2000){
+  TX_BUFFER[0] = '2';
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
+  LCD_DrawString(120, 100, "sending 2");
+}else{
+	  TX_BUFFER[0] = '0';
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
+	  LCD_DrawString(120, 100, "sending 0");
+}
+    HAL_UART_Transmit(&huart1, adc1_dec, 64, 100);
+
+
+//char tx_dec[64] = {0};
+//strcpy(tx_dec,adc1_dec);
+//    strcat(tx_dec,",");
+//    strcat(tx_dec,adc2_dec);
+//	  LCD_DrawString(120, 100, tx_dec);
+//    HAL_UART_Transmit(&huart1, tx_dec, 64, 100);
     HAL_Delay(100);
   }
   /* USER CODE END 3 */
@@ -273,6 +300,39 @@ static void MX_ADC2_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -286,9 +346,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_RESET);
@@ -299,6 +366,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB5 PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PE1 */
   GPIO_InitStruct.Pin = GPIO_PIN_1;
