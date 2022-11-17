@@ -53,6 +53,7 @@ SRAM_HandleTypeDef hsram1;
 char adc1_dec[8], adc2_dec[8];
 // bluetooth buffer
 uint8_t TX_BUFFER[BUFFER_LEN] = {0};
+uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +64,45 @@ static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
+void sendJoystickSignalToSlave(){
+	//get x axis
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1,1000);
+	uint16_t adc1 = HAL_ADC_GetValue(&hadc1);
+	sprintf(adc1_dec, "%4d", adc1);
+	LCD_DrawString(120, 40, adc1_dec);
 
+	//get y-axis
+	HAL_ADC_Start(&hadc2);
+	HAL_ADC_PollForConversion(&hadc2,1000);
+	uint16_t adc2 = HAL_ADC_GetValue(&hadc2);
+	sprintf(adc2_dec, "%4d", adc2);
+	LCD_DrawString(120, 60, adc2_dec);
+
+	//combine x&y and send to slave
+	char tx_dec[BUFFER_LEN] = {0};
+	strcpy(tx_dec,adc1_dec);
+	strcat(tx_dec,",");
+	strcat(tx_dec,adc2_dec);
+	LCD_DrawString(120, 80, tx_dec);
+	HAL_UART_Transmit(&huart1, tx_dec, BUFFER_LEN, 100);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == huart1.Instance)
+    {
+    if(RX_BUFFER[0] == '1')
+    {
+    	LCD_DrawString(120, 100, "1");
+    }
+    else if(RX_BUFFER[0] == '0')
+    {
+    	LCD_DrawString(120, 100, "0");
+    }
+    HAL_UART_Receive_IT(&huart1, RX_BUFFER, 1);
+    }
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -104,13 +143,19 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   LCD_INIT();
+  //receive signal from slave
+  HAL_UART_Receive_IT(&huart1, RX_BUFFER, BUFFER_LEN);
 
   // start ADC1, ADC2 for the joystick
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADCEx_Calibration_Start(&hadc2);
 
   LCD_DrawString(10, 40, "ADC X Value:");
-	LCD_DrawString(10, 60, "ADC2 Y Value:");
+  LCD_DrawString(10, 60, "ADC2 Y Value:");
+  LCD_DrawString(10, 80, "Send X&Y:");
+  LCD_DrawString(10, 100, "Distance:");
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -120,41 +165,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_ADC_Start(&hadc1);
-		HAL_ADC_PollForConversion(&hadc1,1000);
-		uint16_t adc1 = HAL_ADC_GetValue(&hadc1);
-		sprintf(adc1_dec, "%4d", adc1);
-    LCD_DrawString(120, 40, adc1_dec);
-
-    HAL_ADC_Start(&hadc2);
-		HAL_ADC_PollForConversion(&hadc2,1000);
-		uint16_t adc2 = HAL_ADC_GetValue(&hadc2);
-		sprintf(adc2_dec, "%4d", adc2);
-    LCD_DrawString(120, 60, adc2_dec);
-
-if(adc1 > 3000){
-  TX_BUFFER[0] = '1';
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
-  LCD_DrawString(120, 100, "sending 1");
-}else if(adc1 < 2000){
-  TX_BUFFER[0] = '2';
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
-  LCD_DrawString(120, 100, "sending 2");
-}else{
-	  TX_BUFFER[0] = '0';
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
-	  LCD_DrawString(120, 100, "sending 0");
-}
-    HAL_UART_Transmit(&huart1, adc1_dec, 64, 100);
-
-
-//char tx_dec[64] = {0};
-//strcpy(tx_dec,adc1_dec);
-//    strcat(tx_dec,",");
-//    strcat(tx_dec,adc2_dec);
-//	  LCD_DrawString(120, 100, tx_dec);
-//    HAL_UART_Transmit(&huart1, tx_dec, 64, 100);
-    HAL_Delay(100);
+	sendJoystickSignalToSlave();
+    HAL_Delay(200);
   }
   /* USER CODE END 3 */
 }
