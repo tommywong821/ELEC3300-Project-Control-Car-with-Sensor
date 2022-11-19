@@ -80,12 +80,17 @@ void sendJoystickSignalToSlave(){
 	LCD_DrawString(120, 60, adc2_dec);
 
 	//combine x&y and send to slave
-	char tx_dec[BUFFER_LEN] = {0};
-	strcpy(tx_dec,adc1_dec);
-	strcat(tx_dec,",");
-	strcat(tx_dec,adc2_dec);
-	LCD_DrawString(120, 80, tx_dec);
-	HAL_UART_Transmit(&huart1, tx_dec, BUFFER_LEN, 100);
+//	char tx_dec[BUFFER_LEN] = {0};
+//	strcpy(tx_dec,adc1_dec);
+//	strcat(tx_dec,",");
+//	strcat(tx_dec,adc2_dec);
+//	LCD_DrawString(120, 80, tx_dec);
+//	HAL_UART_Transmit(&huart1, tx_dec, BUFFER_LEN, 100);
+	TX_BUFFER[0] = adc1 & 0xff;
+	TX_BUFFER[1] = (adc1 >> 8);
+	TX_BUFFER[2] = adc2;
+	TX_BUFFER[3] = (adc2 >> 8);
+	HAL_UART_Transmit(&huart1, TX_BUFFER, BUFFER_LEN, 10);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
