@@ -58,7 +58,7 @@ SRAM_HandleTypeDef hsram1;
 //bt transfter
 uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 uint8_t TX_BUFFER[BUFFER_LEN] = {0};
-char adc1_dec[8] = {0}, adc2_dec[8] = {8};
+char adc1_dec[8] = {0}, adc2_dec[8] = {0};
 
 //distance sensor
 uint32_t pMillis;
@@ -159,7 +159,8 @@ int main(void)
 //recive from bluetooth master
    HAL_UART_Receive_IT(&huart1, RX_BUFFER, BUFFER_LEN);
 
-  LCD_DrawString(10, 80, "rxstr:");
+  LCD_DrawString(10, 60, "x:");
+  LCD_DrawString(10, 80, "Y:");
 
 
   /* USER CODE END 2 */
@@ -174,14 +175,14 @@ int main(void)
 //	  LCD_DrawString(120, 80, RX_BUFFER);
 	  //receive x, y from master
 	  if(RX_BUFFER[1] != 0 || RX_BUFFER[0] != 0){
-		  	  uint16_t x = ((uint16_t)RX_BUFFER[1] << 8) | RX_BUFFER[0];
-		sprintf(adc1_dec, "%4d", x);
-		LCD_DrawString(120, 120, adc1_dec);
+		  	  uint16_t y = ((uint16_t)RX_BUFFER[1] << 8) | RX_BUFFER[0];
+		sprintf(adc1_dec, "%4d", y);
+		LCD_DrawString(120, 80, adc1_dec);
 	  }
 	  if(RX_BUFFER[3] != 0 || RX_BUFFER[2] != 0){
-		uint16_t y = ((uint16_t)RX_BUFFER[3] << 8) | RX_BUFFER[2];
-		sprintf(adc2_dec, "%4d", y);
-		LCD_DrawString(120, 140, adc2_dec);
+		uint16_t x = ((uint16_t)RX_BUFFER[3] << 8) | RX_BUFFER[2];
+		sprintf(adc2_dec, "%4d", x);
+		LCD_DrawString(120, 60, adc2_dec);
 	  }
 	  handleDistanceSensor();
   }
