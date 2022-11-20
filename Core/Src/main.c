@@ -90,13 +90,9 @@ void sendJoystickSignalToSlave(){
 	TX_BUFFER[1] = (adc1 >> 8);
 	TX_BUFFER[2] = adc2;
 	TX_BUFFER[3] = (adc2 >> 8);
-	HAL_UART_Transmit(&huart1, TX_BUFFER, BUFFER_LEN, 10);
+	HAL_UART_Transmit(&huart1, TX_BUFFER, BUFFER_LEN, 100);
 }
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    if(huart->Instance == huart1.Instance)
-    {
+void handleDistanceSensor(){
     if(RX_BUFFER[0] == '1')
     {
     	LCD_DrawString(120, 100, "1");
@@ -105,7 +101,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     {
     	LCD_DrawString(120, 100, "0");
     }
-    HAL_UART_Receive_IT(&huart1, RX_BUFFER, 1);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == huart1.Instance)
+    {
+    HAL_UART_Receive_IT(&huart1, RX_BUFFER, BUFFER_LEN);
     }
 }
 /* USER CODE END PFP */
@@ -171,6 +173,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	sendJoystickSignalToSlave();
+	handleDistanceSensor();
     HAL_Delay(200);
   }
   /* USER CODE END 3 */
