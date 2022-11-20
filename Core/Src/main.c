@@ -111,6 +111,20 @@ void handleDistanceSensor(){
 	//send back to master
     HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
 }
+
+void handleJoystickSensor(){
+	  //receive x, y from master
+	  if(RX_BUFFER[1] != 0 || RX_BUFFER[0] != 0){
+		  	  uint16_t x = ((uint16_t)RX_BUFFER[1] << 8) | RX_BUFFER[0];
+		sprintf(adc1_dec, "%4d", x);
+		LCD_DrawString(120, 60, adc1_dec);
+	  }
+	  if(RX_BUFFER[3] != 0 || RX_BUFFER[2] != 0){
+		uint16_t Y = ((uint16_t)RX_BUFFER[3] << 8) | RX_BUFFER[2];
+		sprintf(adc2_dec, "%4d", Y);
+		LCD_DrawString(120, 80, adc2_dec);
+	  }
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -172,17 +186,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //receive x, y from master
-	  if(RX_BUFFER[1] != 0 || RX_BUFFER[0] != 0){
-		  	  uint16_t x = ((uint16_t)RX_BUFFER[1] << 8) | RX_BUFFER[0];
-		sprintf(adc1_dec, "%4d", x);
-		LCD_DrawString(120, 60, adc1_dec);
-	  }
-	  if(RX_BUFFER[3] != 0 || RX_BUFFER[2] != 0){
-		uint16_t Y = ((uint16_t)RX_BUFFER[3] << 8) | RX_BUFFER[2];
-		sprintf(adc2_dec, "%4d", Y);
-		LCD_DrawString(120, 80, adc2_dec);
-	  }
+	  handleJoystickSensor();
 	  handleDistanceSensor();
   }
   /* USER CODE END 3 */
