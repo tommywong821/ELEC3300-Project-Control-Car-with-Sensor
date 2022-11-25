@@ -119,7 +119,7 @@ void handleDistanceSensor(){
 	   TX_BUFFER[0] = '1';
 	}
 	//send back to master
-    HAL_UART_Transmit(&huart1, TX_BUFFER, BUFFER_LEN, 100);
+    HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
 }
 
 void handleJoystickSensor(){
