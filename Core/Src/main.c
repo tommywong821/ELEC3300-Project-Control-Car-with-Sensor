@@ -80,12 +80,6 @@ void sendJoystickSignalToSlave(){
 	LCD_DrawString(120, 60, adc2_dec);
 
 	//combine x&y and send to slave
-//	char tx_dec[BUFFER_LEN] = {0};
-//	strcpy(tx_dec,adc1_dec);
-//	strcat(tx_dec,",");
-//	strcat(tx_dec,adc2_dec);
-//	LCD_DrawString(120, 80, tx_dec);
-//	HAL_UART_Transmit(&huart1, tx_dec, BUFFER_LEN, 100);
 	TX_BUFFER[0] = adc1 & 0xff;
 	TX_BUFFER[1] = (adc1 >> 8);
 	TX_BUFFER[2] = adc2;
@@ -95,11 +89,17 @@ void sendJoystickSignalToSlave(){
 void handleDistanceSensor(){
     if(RX_BUFFER[0] == '1')
     {
-    	LCD_DrawString(120, 100, "1");
+ 	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
+ 	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 0);
+ 	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, 1);
+    	LCD_DrawString(120, 80, "Safe");
     }
     else if(RX_BUFFER[0] == '0')
     {
-    	LCD_DrawString(120, 100, "0");
+  	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
+  	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 1);
+  	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, 1);
+    	LCD_DrawString(120, 80, "Stop");
     }
 }
 
@@ -159,8 +159,7 @@ int main(void)
 
   LCD_DrawString(10, 40, "ADC X Value:");
   LCD_DrawString(10, 60, "ADC2 Y Value:");
-  LCD_DrawString(10, 80, "Send X&Y:");
-  LCD_DrawString(10, 100, "Distance:");
+  LCD_DrawString(10, 80, "Distance:");
 
 
   /* USER CODE END 2 */
@@ -364,21 +363,28 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PB0 PB1 PB5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PD12 */
   GPIO_InitStruct.Pin = GPIO_PIN_12;
@@ -387,8 +393,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB5 PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pin : PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
