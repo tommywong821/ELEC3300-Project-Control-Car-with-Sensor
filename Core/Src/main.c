@@ -53,7 +53,7 @@ SRAM_HandleTypeDef hsram1;
 char adc1_dec[8], adc2_dec[8];
 // bluetooth buffer
 uint8_t TX_BUFFER[BUFFER_LEN] = {0};
-uint8_t RX_BUFFER[BUFFER_LEN] = {0};
+uint8_t RX_BUFFER[2] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,12 +102,22 @@ void handleDistanceSensor(){
     	LCD_DrawString(120, 80, "Stop");
     }
 }
+void handleGasSensor(){
+    if(RX_BUFFER[1] == '1')
+    {
+    	LCD_DrawString(120, 100, "Below");
+    }
+    else if(RX_BUFFER[1] == '0')
+    {
+    	LCD_DrawString(120, 100, "Over ");
+    }
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if(huart->Instance == huart1.Instance)
     {
-    HAL_UART_Receive_IT(&huart1, RX_BUFFER, BUFFER_LEN);
+    HAL_UART_Receive_IT(&huart1, RX_BUFFER, 2);
     }
 }
 /* USER CODE END PFP */
@@ -151,7 +161,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   LCD_INIT();
   //receive signal from slave
-  HAL_UART_Receive_IT(&huart1, RX_BUFFER, BUFFER_LEN);
+  HAL_UART_Receive_IT(&huart1, RX_BUFFER, 2);
 
   // start ADC1, ADC2 for the joystick
   HAL_ADCEx_Calibration_Start(&hadc1);
@@ -160,6 +170,7 @@ int main(void)
   LCD_DrawString(10, 40, "ADC X Value:");
   LCD_DrawString(10, 60, "ADC2 Y Value:");
   LCD_DrawString(10, 80, "Distance:");
+  LCD_DrawString(10, 100, "Toxic Gas:");
 
 
   /* USER CODE END 2 */
@@ -173,6 +184,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	sendJoystickSignalToSlave();
 	handleDistanceSensor();
+	handleGasSensor();
     HAL_Delay(200);
   }
   /* USER CODE END 3 */
