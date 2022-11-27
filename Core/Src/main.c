@@ -61,7 +61,7 @@ SRAM_HandleTypeDef hsram1;
 /* USER CODE BEGIN PV */
 //bt transfter
 uint8_t RX_BUFFER[BUFFER_LEN] = {0};
-uint8_t TX_BUFFER[BUFFER_LEN] = {0};
+uint8_t TX_BUFFER[2] = {0};
 char adc1_dec[16] = {0}, adc2_dec[16] = {0}, adc3_dec[16]={0};
 
 //distance sensor
@@ -121,8 +121,8 @@ void handleDistanceSensor(){
 	   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
 	   TX_BUFFER[0] = '1';
 	}
-	//send back to master
-    HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
+//	//send back to master
+//    HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
 }
 
 void handleJoystickSensor(){
@@ -241,7 +241,6 @@ void handleGasSensor(){
 		  LCD_DrawString(140, 140, "Dangerous");
 			TX_BUFFER[1] = '0';
 	  }
-	   HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
 }
 /* USER CODE END PFP */
 
@@ -316,6 +315,7 @@ int main(void)
 	  handleJoystickSensor();
 	  handleDistanceSensor();
 	  handleGasSensor();
+	HAL_UART_Transmit(&huart1, TX_BUFFER, 2, 100);
   }
   /* USER CODE END 3 */
 }
