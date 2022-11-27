@@ -46,7 +46,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- I2C_HandleTypeDef hi2c1;
+ ADC_HandleTypeDef hadc1;
+
+I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -60,7 +62,7 @@ SRAM_HandleTypeDef hsram1;
 //bt transfter
 uint8_t RX_BUFFER[BUFFER_LEN] = {0};
 uint8_t TX_BUFFER[BUFFER_LEN] = {0};
-char adc1_dec[16] = {0}, adc2_dec[16] = {0};
+char adc1_dec[16] = {0}, adc2_dec[16] = {0}, adc3_dec[16]={0};
 
 //distance sensor
 uint32_t pMillis;
@@ -85,6 +87,7 @@ static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -221,6 +224,25 @@ void handleJoystickSensor(){
 	__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_3, speedLeft);
 	__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_2, speedRight);
 }
+
+void handleGasSensor(){
+	  HAL_ADC_PollForConversion(&hadc1, 1000);
+	  uint16_t gasQuality = HAL_ADC_GetValue(&hadc1);
+	  sprintf(adc3_dec, "%4d", gasQuality);
+	  LCD_DrawString(10, 120, "Gas:");
+	  LCD_DrawString(120, 120, adc3_dec);
+	  LCD_DrawString(10, 140, "Gas dig:");
+	  if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_4) == GPIO_PIN_SET){
+		  LCD_Clear (140, 140, LCD_DispWindow_COLUMN, LCD_DispWindow_PAGE, BACKGROUND);
+		  LCD_DrawString(140, 140, "Safe");
+			TX_BUFFER[1] = '1';
+	  }else{
+		  LCD_Clear (140, 140, LCD_DispWindow_COLUMN, LCD_DispWindow_PAGE, BACKGROUND);
+		  LCD_DrawString(140, 140, "Dangerous");
+			TX_BUFFER[1] = '0';
+	  }
+	   HAL_UART_Transmit(&huart1, TX_BUFFER, 1, 10);
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -262,12 +284,15 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   LCD_INIT();
 
   //motor control
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); //PA1 TIM2 CH2
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); //PA1 TIM2 CH2
+
+  HAL_ADCEx_Calibration_Start(&hadc1);
 
   //distance sensor
   HAL_TIM_Base_Start(&htim1);
@@ -290,6 +315,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  handleJoystickSensor();
 	  handleDistanceSensor();
+	  handleGasSensor();
   }
   /* USER CODE END 3 */
 }
@@ -302,6 +328,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -331,6 +358,59 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -595,11 +675,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  /*Configure GPIO pin : PC4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB13 PB8 PB9 */
   GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_8|GPIO_PIN_9;
@@ -621,6 +701,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB5 */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
