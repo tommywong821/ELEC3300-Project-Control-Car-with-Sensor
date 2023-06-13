@@ -14,5 +14,11 @@ The project involves building a remote control car using two STM-32 development 
 - L298N Motor Driver Module
 
 ## Video Demonstration
+https://github.com/tommywong821/ELEC3300-Project-Control-Car-with-Sensor/assets/50240518/981594b2-b781-49c2-a8cc-77e46f2f2694
 
 ## Photo
+Car with various sensor
+![photo1](https://github.com/tommywong821/ELEC3300-Project-Control-Car-with-Sensor/assets/50240518/54f55a3a-9179-43ef-b3e6-ddd3fc5dabb5)
+
+Master STM-32 development board with LCD monitor
+![photo2](https://github.com/tommywong821/ELEC3300-Project-Control-Car-with-Sensor/assets/50240518/3ca29829-30cc-4465-9550-490ec50bc4a7)
